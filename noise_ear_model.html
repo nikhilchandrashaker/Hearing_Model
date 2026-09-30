@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cumulative Noise Exposure and the Ears — an illustrative model</title>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,400;6..72,500&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#131518;--panel:#1c1f24;--line:#30353d;--bone:#e9ecef;--dim:#9ba3ad;--accent:#6fd0c0;--dead:#5a4650;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--bone);font-family:'Inter',system-ui,sans-serif;padding:32px 20px 56px}
+.wrap{max-width:1000px;margin:0 auto}
+h1{font-family:'Newsreader',Georgia,serif;font-weight:500;font-size:34px;margin:0 0 6px}
+.sub{color:var(--dim);max-width:64ch;line-height:1.55;margin:0 0 24px;font-size:14px}
+.grid{display:grid;grid-template-columns:1.1fr 1fr;gap:20px}
+@media(max-width:760px){.grid{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px}
+label{display:flex;justify-content:space-between;font-size:13px;color:var(--dim);margin:14px 0 6px}
+label b{color:var(--accent);font-weight:500}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.chk{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--dim);margin-top:14px}
+.stage{font-family:'Newsreader',Georgia,serif;font-size:20px;margin:6px 0 2px}
+.mono{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--dim)}
+.note{font-size:12px;color:var(--dim);line-height:1.5;margin-top:12px}
+svg{width:100%;height:auto;display:block}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px}
+.stat{border-top:1px solid var(--line);padding-top:8px}
+.stat span{display:block;font-size:12px;color:var(--dim)}
+.stat strong{font-family:'IBM Plex Mono',monospace;font-weight:500;font-size:18px}
+.bar{height:8px;background:#282d34;border-radius:4px;overflow:hidden;min-width:70px}
+.bar i{display:block;height:100%;background:var(--accent)}
+table{width:100%;border-collapse:collapse;font-size:13px;margin-top:10px}
+td,th{padding:6px 4px;text-align:left;border-bottom:1px solid var(--line)}
+th{color:var(--dim);font-weight:500}
+tr.on td{color:var(--accent)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Cumulative Noise Exposure and the Ears</h1>
+  <p class="sub">Set how loud, how many hours a day, and for how many years. Sensory hair cells in the cochlea are lost starting at the high-pitch end, and the audiogram shows the characteristic dip around 4 kHz. The animation is an illustrative model; the data panel is from a synthetic dataset. Not medical advice.</p>
+
+  <div class="grid">
+    <div class="panel">
+      <svg viewBox="0 0 400 210" role="img" aria-label="Cochlea whose hair cells are lost from the high-pitch base inward">
+        <g id="dots"></g>
+        <text x="30" y="200" font-size="11" fill="#9ba3ad" font-family="Inter,sans-serif">outer end: high pitch (lost first)</text>
+        <text x="245" y="120" font-size="11" fill="#9ba3ad" font-family="Inter,sans-serif">center: low pitch</text>
+      </svg>
+      <svg viewBox="0 0 400 210" role="img" aria-label="Audiogram showing hearing thresholds by frequency">
+        <rect x="46" y="20" width="336" height="40" fill="#6fd0c0" opacity=".08"/>
+        <g id="grid" stroke="#30353d" stroke-width="1"></g>
+        <g id="ylab" font-size="10" fill="#9ba3ad" font-family="IBM Plex Mono,monospace"></g>
+        <g id="xlab" font-size="10" fill="#9ba3ad" font-family="IBM Plex Mono,monospace" text-anchor="middle"></g>
+        <polyline id="line" fill="none" stroke="#6fd0c0" stroke-width="2.5"/>
+        <g id="pts" fill="#6fd0c0"></g>
+        <text x="50" y="14" font-size="11" fill="#9ba3ad" font-family="Inter,sans-serif">hearing threshold (dB HL, lower on chart = worse)</text>
+      </svg>
+      <div class="stage" id="stage"></div>
+      <div class="mono" id="ny"></div>
+    </div>
+
+    <div class="panel">
+      <label>Sound level (dBA) <b id="lv">90</b></label>
+      <input type="range" id="l" min="60" max="120" step="5" value="90">
+      <label>Hours per day <b id="hv">2</b></label>
+      <input type="range" id="h" min="0" max="12" step="0.5" value="2">
+      <label>Years of exposure <b id="yv">10</b></label>
+      <input type="range" id="y" min="0" max="35" value="10">
+      <div class="chk"><input type="checkbox" id="p"><label for="p" style="margin:0;display:inline">Wearing hearing protection (−15 dB)</label></div>
+      <div class="stats">
+        <div class="stat"><span>Daily noise dose</span><strong id="s1"></strong></div>
+        <div class="stat"><span>Safe time at this level</span><strong id="s2"></strong></div>
+        <div class="stat"><span>Est. loss at 4 kHz</span><strong id="s3"></strong></div>
+        <div class="stat"><span>Hair cells lost (est.)</span><strong id="s4"></strong></div>
+      </div>
+      <p class="note">Dose follows the NIOSH convention: 85 dBA for 8 hours = 100% of a daily dose, and every +3 dB halves the safe time. Noise-years = daily dose × years. Injury f = 1 − e<sup>−noise-years/15</sup>. Loss at 4 kHz = 50f dB above a 5 dB baseline. Hair cells lost = 0.8f. These curves are my illustrative choices, not from a study. Age, genetics and medications also matter and aren't modeled here.</p>
+    </div>
+  </div>
+
+  <div class="panel" style="margin-top:20px">
+    <div class="stage">What the synthetic dataset showed</div>
+    <div class="note" style="margin-top:0">2,500 rows from <span class="mono">noise_dataset.csv</span>. "Damaged" means a simulated 4 kHz threshold above 25 dB. The file is simulated with a dose-response built in, so this shows the generator, not real people. Correlation of log(1 + noise-years) with the 4 kHz threshold: r ≈ 0.89.</div>
+    <table id="tbl"><tr><th>Exposure</th><th>Level</th><th>Damaged</th><th>Rate</th><th>Mean 4 kHz</th><th></th></tr></table>
+    <p class="note">The row matching your level slider is highlighted. Boundaries are approximate.</p>
+  </div>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const rows=[["Quiet","60–75 dB",22,754,10.5],["Moderate","76–85 dB",154,751,17.7],["Loud","86–100 dB",393,667,35.6],["Very Loud","101+ dB",315,328,55.9]];
+$('tbl').insertAdjacentHTML('beforeend',rows.map(r=>{const p=r[2]/r[3]*100;return `<tr data-l="${r[0]}"><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}/${r[3]}</td><td>${p.toFixed(1)}%</td><td>${r[4]} dB</td><td><div class="bar"><i style="width:${p}%"></i></div></td></tr>`}).join(''));
+
+// cochlea spiral of hair-cell dots, index 0 = outer (high pitch)
+const n=64,dots=[];
+for(let i=0;i<n;i++){const t=i/(n-1),th=t*3.4*Math.PI,r=80*(1-t)+8;dots.push([(200+r*Math.cos(th)*1.3).toFixed(1),(95+r*Math.sin(th)).toFixed(1)])}
+$('dots').innerHTML=dots.map(d=>`<circle cx="${d[0]}" cy="${d[1]}" r="5" fill="#6fd0c0"/>`).join('');
+
+// audiogram
+const F=["250","500","1k","2k","3k","4k","6k","8k"],prof=[.05,.1,.25,.5,.85,1,.9,.6];
+const X=i=>62+i*(300/7),Y=d=>20+d*(180-20)/100*1.0;
+$('grid').innerHTML=[0,25,50,75,100].map(d=>`<line x1="46" x2="382" y1="${Y(d)}" y2="${Y(d)}"/>`).join('');
+$('ylab').innerHTML=[0,25,50,75,100].map(d=>`<text x="4" y="${Y(d)+3}">${d}</text>`).join('');
+$('xlab').innerHTML=F.map((f,i)=>`<text x="${X(i)}" y="200">${f}</text>`).join('');
+
+const fmt=n=>n.toLocaleString('en-US',{maximumFractionDigits:1});
+function update(){
+  const L=+$('l').value,h=+$('h').value,y=+$('y').value,prot=$('p').checked&&L>=85;
+  $('lv').textContent=L;$('hv').textContent=h;$('yv').textContent=y;
+  const eff=L-(prot?15:0), dose=h/8*Math.pow(2,(eff-85)/3)*100, ny=dose/100*y, f=1-Math.exp(-ny/15);
+  const safe=8/Math.pow(2,(eff-85)/3);
+  const th=prof.map(p=>5+50*f*p);
+  $('line').setAttribute('points',th.map((t,i)=>`${X(i)},${Y(t)}`).join(' '));
+  $('pts').innerHTML=th.map((t,i)=>`<circle cx="${X(i)}" cy="${Y(t)}" r="3.5"/>`).join('');
+  const dead=.8*f;
+  [...$('dots').children].forEach((c,i)=>c.setAttribute('fill',i/(n-1)<dead?'#5a4650':'#6fd0c0'));
+  $('s1').textContent=dose>=1000?Math.round(dose).toLocaleString('en-US')+'%':fmt(dose)+'%';
+  $('s2').textContent=safe>=24?'no limit':safe>=1?fmt(safe)+' h':Math.round(safe*60)+' min';
+  $('s3').textContent=Math.round(50*f)+' dB';
+  $('s4').textContent=Math.round(dead*100)+'%';
+  $('ny').textContent='noise-years: '+fmt(ny);
+  const loss=50*f;
+  $('stage').textContent=ny===0?'Healthy — no meaningful exposure':loss<5?'Minimal change':loss<15?'Early high-frequency loss':loss<30?'Noticeable 4 kHz notch':'Substantial high-frequency loss';
+  const lvl=L<=75?'Quiet':L<=85?'Moderate':L<=100?'Loud':'Very Loud';
+  document.querySelectorAll('#tbl tr[data-l]').forEach(r=>r.className=r.dataset.l===lvl?'on':'');
+}
+['l','h','y','p'].forEach(id=>$(id).oninput=update);update();
+</script>
+</body>
+</html>
